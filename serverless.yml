@@ -1,0 +1,63 @@
+org: mauriciocoder
+app: route-learner-crawler
+service: route-learner-crawler-cron
+frameworkVersion: '3'
+
+# Create our resources with separate CloudFormation templates
+# resources:
+  # API Gateway Handler
+  # - ${file(resources/api-gateway-handler.yml)}
+  # DynamoDb Handler
+  # - ${file(resources/dynamodb-handler.yml)}
+
+# This will inject the .env file content in this file to be used as variable ${env:VAR_NAME}. 
+# The .env file will not be packaged during deployment. It will resolve the file based on the stage parameter passed during deployment.
+# Ex: sls deploy --stage prod -> will inject .env.prod file 
+useDotenv: true  
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: ${opt:stage, 'dev'}
+  environment:
+    DB_URI: ${env:DB_URI}
+    DB_VERBOSE: ${env:DB_VERBOSE}
+    WEATHER_API_BASE_URL: ${env:WEATHER_API_BASE_URL}
+    WEATHER_API_TOKEN: ${env:WEATHER_API_TOKEN}
+    WEATHER_API_UNITS: ${env:WEATHER_API_UNITS}
+    ROUTE_API_BASE_URL: ${env:ROUTE_API_BASE_URL}
+    ROUTE_API_TOKEN: ${env:ROUTE_API_TOKEN}
+    ROUTE_API_VEHICLE: ${env:ROUTE_API_VEHICLE}
+    CITY_IDS: ${env:CITY_IDS}
+    CITY_DESCRIPTION: ${env:CITY_DESCRIPTION}
+    GEO_ORIGIN: ${env:GEO_ORIGIN}
+    GEO_ORIGIN_DESCRIPTION: ${env:GEO_ORIGIN_DESCRIPTION}
+    GEO_DESTINY: ${env:GEO_DESTINY}
+    GEO_DESTINY_DESCRIPTION: ${env:GEO_DESTINY_DESCRIPTION}
+functions:
+  extract_route:
+    handler: src.functions.extract_route.run
+    events:
+      # Invoke Lambda function at every 5th minute.
+      - schedule:
+          rate: cron(0,5,10,15,20,25,30,35,40,45,50,55 * * * ? *)
+    # I have removed the VPC configuration, thus the access to database is done through external access.
+    # I have removed VPC b/c once the lambda is in VPC, it does not have an ip address, and thus a NAT Gateway is required to reach internet (for route extraction)
+    # NAT Gateway is expensive :)
+    # vpc:
+      # securityGroupIds:
+        # - sg-1908885f
+      # subnetIds:
+        # - subnet-4c0e3e43
+        # - subnet-d51c9eeb
+        # - subnet-f695eb91
+        # - subnet-d9b1ca85
+        # - subnet-94a8edba
+        # - subnet-03909e49
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
